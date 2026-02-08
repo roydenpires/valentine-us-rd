@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Will you be my Valentine?</title>
+  <style>
+    :root{
+      --bg1:#ffdee9;
+      --bg2:#b5fffc;
+      --card:#ffffffcc;
+      --ink:#24121a;
+      --muted:#5a2b3b;
+      --yes:#ff4d7d;
+      --yes2:#ff2f67;
+      --no:#ffffff;
+      --ring: rgba(255,77,125,.35);
+      --shadow: 0 20px 60px rgba(25, 10, 20, .18);
+      --radius: 26px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-rounded, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color:var(--ink);
+      overflow:hidden;
+      background:
+        radial-gradient(1200px 900px at 20% 15%, rgba(255,255,255,.65), transparent 55%),
+        radial-gradient(900px 700px at 90% 70%, rgba(255,255,255,.55), transparent 60%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+    }
+
+    /* Soft animated shimmer */
+    .shimmer{
+      position:fixed; inset:-40%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 50%),
+                  radial-gradient(circle at 70% 70%, rgba(255,255,255,.25), transparent 52%);
+      filter: blur(18px);
+      animation: drift 14s ease-in-out infinite alternate;
+      pointer-events:none;
+      opacity:.75;
+    }
+    @keyframes drift{
+      from{ transform: translate3d(-2%, -3%, 0) rotate(-4deg) }
+      to{ transform: translate3d(3%, 2%, 0) rotate(4deg) }
+    }
+
+    /* Floating hearts canvas */
+    canvas#hearts{
+      position:fixed; inset:0;
+      pointer-events:none;
+      opacity:.85;
+    }
+
+    canvas#snow{
+      position:fixed; inset:0;
+      pointer-events:none;
+      opacity:.55;              /* adjust intensity */
+      filter: blur(.15px);      /* a tiny softness */
+    }
+
+    /* confetti layer */
+    canvas#confetti{
+      position:fixed; inset:0;
+      pointer-events:none;
+      display:none;
+    }
+
+    .wrap{
+      position:relative;
+      height:100%;
+      display:grid;
+      place-items:center;
+      padding:24px;
+    }
+
+    .card{
+      width:min(720px, 92vw);
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,.55);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 26px 24px 22px;
+      transform: translateY(8px);
+      animation: popIn 900ms cubic-bezier(.2,.85,.2,1) forwards;
+      position:relative;
+      overflow:hidden;
+    }
+    @keyframes popIn{
+      0%{opacity:0; transform: translateY(22px) scale(.96)}
+      100%{opacity:1; transform: translateY(0) scale(1)}
+    }
+
+    /* little sparkles around card */
+    .card::before{
+      content:"";
+      position:absolute; inset:-60px;
+      background:
+        radial-gradient(circle at 25% 30%, rgba(255,255,255,.55), transparent 28%),
+        radial-gradient(circle at 75% 70%, rgba(255,255,255,.45), transparent 30%),
+        radial-gradient(circle at 60% 20%, rgba(255,255,255,.35), transparent 25%);
+      opacity:.55;
+      filter: blur(10px);
+      animation: glow 6s ease-in-out infinite alternate;
+      pointer-events:none;
+    }
+    @keyframes glow{ from{transform:scale(1)} to{transform:scale(1.04)} }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,77,125,.12);
+      border: 1px solid rgba(255,77,125,.18);
+      color: var(--muted);
+      font-weight: 650;
+      letter-spacing: .2px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+
+    h1{
+      margin: 8px 0 10px;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height:1.05;
+      letter-spacing:-.6px;
+    }
+
+    p{
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.45;
+    }
+
+    .row{
+      display:flex;
+      gap: 12px;
+      flex-wrap:wrap;
+      margin-top: 16px;
+      position:relative;
+      min-height: 56px;
+      align-items:center;
+    }
+
+    button{
+      appearance:none;
+      border:0;
+      cursor:pointer;
+      padding: 14px 18px;
+      font-size: 16px;
+      font-weight: 750;
+      border-radius: 16px;
+      transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+      position:relative;
+      user-select:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button:active{ transform: translateY(1px) scale(.99) }
+
+    .yes{
+      background: linear-gradient(180deg, var(--yes), var(--yes2));
+      color:white;
+      box-shadow: 0 16px 30px rgba(255,47,103,.25);
+    }
+    .yes:hover{
+      box-shadow: 0 20px 40px rgba(255,47,103,.32);
+      transform: translateY(-1px);
+    }
+
+    .no{
+      background: rgba(255,255,255,.85);
+      color: #6a2a3f;
+      border: 1px solid rgba(106,42,63,.18);
+      box-shadow: 0 10px 18px rgba(20,10,16,.10);
+
+      /* mobile-friendly tap target */
+      min-width: 120px;
+      min-height: 48px;
+    }
+    .no:hover{
+      box-shadow: 0 14px 24px rgba(20,10,16,.14);
+      transform: translateY(-1px);
+    }
+
+    .hint{
+      margin-top: 14px;
+      font-size: 12.5px;
+      color: rgba(90,43,59,.8);
+    }
+
+    /* NEW YES BOX */
+    .loveBox{
+      margin-top: 6px;
+      padding: 18px 18px 16px;
+      border-radius: 20px;
+      background: rgba(255,77,125,.10);
+      border: 1px solid rgba(255,77,125,.18);
+      animation: fadeUp .55s ease forwards;
+      position:relative;
+      z-index: 1;
+    }
+
+    .loveBox h2{
+      margin: 0 0 6px;
+      font-size: clamp(26px, 3.6vw, 34px);
+      letter-spacing: -.4px;
+      color: #7a1f3c;
+    }
+
+    .loveBox .yay{
+      font-weight: 900;
+      font-size: 18px;
+      margin: 6px 0 10px;
+      color: #7a1f3c;
+    }
+
+    .loveBox .msg{
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+
+    .loveBox .extra{
+      margin-top: 10px;
+      font-weight: 750;
+      color: rgba(90,43,59,.92);
+    }
+
+    .lovePhoto{
+      margin-top: 14px;
+      border-radius: 18px;
+      overflow:hidden;
+      background: rgba(255,255,255,.55);
+      border: 1px dashed rgba(122,31,60,.25);
+      aspect-ratio: 16/10;
+      display:grid;
+      place-items:center;
+      font-weight:700;
+      color: rgba(122,31,60,.7);
+    }
+    .lovePhoto img{
+      width:100%; height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    @keyframes fadeUp{
+      from{ opacity:0; transform: translateY(10px) }
+      to{ opacity:1; transform: translateY(0) }
+    }
+
+    /* accessibility / reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      *{animation:none !important; transition:none !important}
+      body{overflow:auto}
+      canvas#hearts{display:none}
+      canvas#snow{display:none}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="shimmer"></div>
+
+  <canvas id="hearts"></canvas>
+  <canvas id="snow"></canvas>
+  <canvas id="confetti"></canvas>
+
+  <main class="wrap">
+    <section class="card" id="card" aria-live="polite">
+      <div class="badge">💌 A tiny question…</div>
+      <h1 id="title">Will you be my Valentine?</h1>
+      <p id="subtitle">
+        I promise to bring the snacks, the hugs, and the “I saw this and thought of you” energy.
+      </p>
+
+      <div class="row" id="btnRow">
+        <button class="yes" id="yesBtn">Yes 💘</button>
+        <button class="no" id="noBtn">No 🙈</button>
+      </div>
+
+      <div class="hint" id="hint">Tip: the “No” button is… shy 😅</div>
+
+      <!-- old success box stays in HTML but gets removed on YES click -->
+      <div class="success" id="successBox" style="display:none;"></div>
+    </section>
+  </main>
+
+  <script>
+    // ========== EDIT ME (personalization) ==========
+    const GIRLFRIEND_NAME = "Defilia";
+    const YOUR_NAME = "Mr. Piresz";
+    const SUCCESS_MESSAGE = "Best decision ever. Your official Valentine date is booked. I'll be seeing you soon🌹";
+    const EXTRA_CUTE_LINE = "Now you officially owe me one big hug and one forehead kiss 😘";
+    const PHOTO_URL = "for_v.jpeg";
+
+    // SNOW COLOUR
+    const snowPalette = [
+      "255,182,193", // soft pink
+      "255,105,180", // hot pink
+      "255,215,200", // blush
+      "255,255,255"  // white
+    ];
+
+    // ========== DOM ==========
+    const card = document.getElementById("card");
+    const title = document.getElementById("title");
+    const subtitle = document.getElementById("subtitle");
+    const yesBtn = document.getElementById("yesBtn");
+    const noBtn = document.getElementById("noBtn");
+    const btnRow = document.getElementById("btnRow");
+    const confettiCanvas = document.getElementById("confetti");
+
+    if (GIRLFRIEND_NAME) title.textContent = `Will you be my Valentine, ${GIRLFRIEND_NAME}?`;
+    if (YOUR_NAME) subtitle.textContent = `From ${YOUR_NAME}, with maximum love and zero chill. 💗`;
+
+    // ========== “NO” BUTTON DODGE (DESKTOP + MOBILE SAFE) ==========
+    let dodgeCount = 0;
+    const MAX_DODGES = 6;
+
+    function dodgeNoButton(){
+      if (dodgeCount >= MAX_DODGES) {
+        // playful defeat state
+        noBtn.style.transform = "scale(0.92)";
+        noBtn.textContent = "Nice try 😏";
+        return;
+      }
+
+      dodgeCount++;
+
+      const rowRect = btnRow.getBoundingClientRect();
+      const noRect = noBtn.getBoundingClientRect();
+
+      const padding = 12;
+      const maxX = Math.max(padding, rowRect.width - noRect.width - padding);
+      const maxY = 14;
+
+      const x = padding + Math.random() * (maxX - padding);
+      const y = (Math.random() * maxY) - (maxY / 2);
+
+      noBtn.style.position = "absolute";
+      noBtn.style.left = `${x}px`;
+      noBtn.style.top = `${y}px`;
+
+      // subtle wiggle feedback
+      if (!prefersReduced) {
+        noBtn.animate(
+          [
+            { transform: "rotate(0deg)" },
+            { transform: "rotate(3deg)" },
+            { transform: "rotate(-3deg)" },
+            { transform: "rotate(0deg)" }
+          ],
+          { duration: 220, easing: "ease-out" }
+        );
+      }
+    }
+
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (!prefersReduced) {
+      // Desktop
+      noBtn.addEventListener("mouseenter", dodgeNoButton);
+
+      // Mobile: dodge BEFORE tap completes
+      noBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();   // prevents accidental click
+        dodgeNoButton();
+      }, { passive: false });
+    }
+
+    // If somehow clicked (keyboard, etc.)
+    noBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      subtitle.textContent = "That option is currently unavailable 😌";
+    });
+
+    // ========== YES ACTION ==========
+    let celebrated = false;
+    yesBtn.addEventListener("click", () => {
+      if (celebrated) return;
+      celebrated = true;
+
+      // Confetti
+      if (!prefersReduced){
+        confettiCanvas.style.display = "block";
+        startConfetti(confettiCanvas, 280);
+        setTimeout(() => { stopConfetti(); confettiCanvas.style.display = "none"; }, 4200);
+      }
+
+      // Remove everything inside the card and rebuild fresh
+      card.innerHTML = "";
+
+      const badge = document.createElement("div");
+      badge.className = "badge";
+      badge.textContent = "💘 It’s a YES!";
+
+      const box = document.createElement("div");
+      box.className = "loveBox";
+
+      const h2 = document.createElement("h2");
+      h2.textContent = "I love you!";
+
+      const yay = document.createElement("div");
+      yay.className = "yay";
+      yay.textContent = "YAY!!! 💖";
+
+      const msg = document.createElement("p");
+      msg.className = "msg";
+      msg.textContent = SUCCESS_MESSAGE;
+
+      const extra = document.createElement("div");
+      extra.className = "extra";
+      extra.textContent = EXTRA_CUTE_LINE;
+
+      const photo = document.createElement("div");
+      photo.className = "lovePhoto";
+      photo.textContent = "Loading photo…";
+
+      if (PHOTO_URL){
+        const img = new Image();
+        img.src = PHOTO_URL;
+        img.alt = "A cute photo of us";
+        img.onload = () => {
+          photo.textContent = "";
+          photo.appendChild(img);
+        };
+        img.onerror = () => {
+          photo.textContent = "Add a photo later (optional)";
+        };
+      } else {
+        photo.textContent = "Add a photo later (optional)";
+      }
+
+      box.appendChild(h2);
+      box.appendChild(yay);
+      box.appendChild(msg);
+      box.appendChild(extra);
+      box.appendChild(photo);
+
+      card.appendChild(badge);
+      card.appendChild(box);
+    });
+
+    // ========== HEARTS BACKGROUND ==========
+    const hearts = document.getElementById("hearts");
+    const hctx = hearts.getContext("2d");
+
+    function resizeCanvas(c){
+      const dpr = Math.max(1, window.devicePixelRatio || 1);
+      c.width = Math.floor(window.innerWidth * dpr);
+      c.height = Math.floor(window.innerHeight * dpr);
+      c.style.width = window.innerWidth + "px";
+      c.style.height = window.innerHeight + "px";
+      const ctx = c.getContext("2d");
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      return ctx;
+    }
+
+    resizeCanvas(hearts);
+    window.addEventListener("resize", () => resizeCanvas(hearts));
+
+    const heartPalette = ["rgba(255,77,125,.55)","rgba(255,47,103,.45)","rgba(255,143,175,.50)","rgba(255,255,255,.40)"];
+    const heartCount = prefersReduced ? 0 : 34;
+    const heartParticles = Array.from({length: heartCount}, () => spawnHeart());
+
+    function spawnHeart(){
+      return {
+        x: Math.random() * window.innerWidth,
+        y: window.innerHeight + Math.random() * window.innerHeight * 0.4,
+        s: 8 + Math.random() * 16,
+        vy: 0.4 + Math.random() * 1.1,
+        vx: -0.35 + Math.random() * 0.7,
+        a: Math.random() * Math.PI * 2,
+        va: -0.01 + Math.random() * 0.02,
+        c: heartPalette[Math.floor(Math.random()*heartPalette.length)],
+      };
+    }
+
+    function drawHeart(ctx, x, y, size, color, rot){
+      ctx.save();
+      ctx.translate(x,y);
+      ctx.rotate(rot);
+      ctx.scale(size/16, size/16);
+      ctx.beginPath();
+      ctx.moveTo(0, 6);
+      ctx.bezierCurveTo(0, -4, -14, -4, -14, 6);
+      ctx.bezierCurveTo(-14, 16, 0, 22, 0, 30);
+      ctx.bezierCurveTo(0, 22, 14, 16, 14, 6);
+      ctx.bezierCurveTo(14, -4, 0, -4, 0, 6);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function animateHearts(){
+      if (prefersReduced) return;
+
+      hctx.clearRect(0,0,window.innerWidth, window.innerHeight);
+      for (const p of heartParticles){
+        p.x += p.vx;
+        p.y -= p.vy;
+        p.a += p.va;
+
+        drawHeart(hctx, p.x, p.y, p.s, p.c, p.a);
+
+        if (p.y < -60 || p.x < -80 || p.x > window.innerWidth + 80){
+          Object.assign(p, spawnHeart());
+          p.y = window.innerHeight + 60;
+        }
+      }
+      requestAnimationFrame(animateHearts);
+    }
+    animateHearts();
+
+    // ========== SNOW BACKGROUND ==========
+    const snow = document.getElementById("snow");
+    const sctx = snow.getContext("2d");
+
+    resizeCanvas(snow);
+    window.addEventListener("resize", () => resizeCanvas(snow));
+
+    const snowCount = prefersReduced ? 0 : 120;
+    const snowflakes = Array.from({ length: snowCount }, () => spawnSnow());
+
+    function spawnSnow() {
+      const size = 1.2 + Math.random() * 3.2;
+      return {
+        x: Math.random() * window.innerWidth,
+        y: -20 - Math.random() * window.innerHeight,
+        r: size,
+        vy: 0.6 + Math.random() * 1.6,
+        vx: -0.35 + Math.random() * 0.7,
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: 0.008 + Math.random() * 0.02,
+        wobbleAmp: 8 + Math.random() * 18,
+        o: 0.35 + Math.random() * 0.55,
+        c: snowPalette[Math.floor(Math.random() * snowPalette.length)]
+      };
+    }
+
+    function animateSnow() {
+      if (prefersReduced) return;
+
+      sctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      for (const f of snowflakes) {
+        f.wobble += f.wobbleSpeed;
+        const driftX = Math.sin(f.wobble) * (f.wobbleAmp * 0.03);
+
+        f.x += f.vx + driftX;
+        f.y += f.vy;
+
+        sctx.beginPath();
+        sctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+        sctx.fillStyle = `rgba(${f.c},${f.o})`;
+        sctx.fill();
+
+        if (f.y > window.innerHeight + 30 || f.x < -60 || f.x > window.innerWidth + 60) {
+          Object.assign(f, spawnSnow());
+          f.y = -30;
+        }
+      }
+
+      requestAnimationFrame(animateSnow);
+    }
+    animateSnow();
+
+    // ========== CONFETTI ==========
+    let confettiRAF = null;
+    let confettiParticles = [];
+
+    function startConfetti(canvas, amount){
+      const ctx = resizeCanvas(canvas);
+
+      confettiParticles = Array.from({length: amount}, () => ({
+        x: Math.random() * window.innerWidth,
+        y: -20 - Math.random()*window.innerHeight*0.3,
+        w: 6 + Math.random()*6,
+        h: 8 + Math.random()*10,
+        vx: -2 + Math.random()*4,
+        vy: 2 + Math.random()*5,
+        r: Math.random()*Math.PI,
+        vr: -0.15 + Math.random()*0.3,
+        o: 0.9,
+      }));
+
+      const colors = ["#ff4d7d","#ff2f67","#ffd1dc","#ffffff","#ff8fb0","#f5a3b7"];
+
+      function step(){
+        ctx.clearRect(0,0,window.innerWidth, window.innerHeight);
+        for (const p of confettiParticles){
+          p.x += p.vx;
+          p.y += p.vy;
+          p.r += p.vr;
+          p.vy += 0.03;
+          p.o -= 0.0015;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.r);
+          ctx.globalAlpha = Math.max(0, p.o);
+          ctx.fillStyle = colors[(p.w + p.h | 0) % colors.length];
+          ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+          ctx.restore();
+        }
+
+        confettiParticles = confettiParticles.filter(p => p.o > 0 && p.y < window.innerHeight + 40);
+        if (confettiParticles.length > 0){
+          confettiRAF = requestAnimationFrame(step);
+        }
+      }
+      step();
+    }
+
+    function stopConfetti(){
+      if (confettiRAF) cancelAnimationFrame(confettiRAF);
+      confettiRAF = null;
+      confettiParticles = [];
+    }
+  </script>
+</body>
+</html>
